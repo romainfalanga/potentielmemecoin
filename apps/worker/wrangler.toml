@@ -10,12 +10,10 @@ directory = "../web/dist"
 binding = "ASSETS"
 not_found_handling = "single-page-application"
 
-# Create with: wrangler d1 create memecoin-analysis-engine
-# then paste the returned database_id below.
 [[d1_databases]]
 binding = "DB"
 database_name = "memecoin-analysis-engine"
-database_id = "REPLACE_WITH_YOUR_D1_DATABASE_ID"
+database_id = "fc765c01-274a-483d-8b14-0ca802295690"
 migrations_dir = "migrations"
 
 [vars]
