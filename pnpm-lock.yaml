@@ -17,6 +17,12 @@ importers:
       '@mae/core':
         specifier: workspace:*
         version: link:../../packages/core
+      '@mae/providers':
+        specifier: workspace:*
+        version: link:../../packages/providers
+      hono:
+        specifier: ^4.6.11
+        version: 4.12.27
       react:
         specifier: ^18.3.1
         version: 18.3.1
@@ -24,6 +30,9 @@ importers:
         specifier: ^18.3.1
         version: 18.3.1(react@18.3.1)
     devDependencies:
+      '@cloudflare/workers-types':
+        specifier: ^4.20241127.0
+        version: 4.20260702.1
       '@types/react':
         specifier: ^18.3.12
         version: 18.3.31
@@ -39,25 +48,6 @@ importers:
       vite:
         specifier: ^5.4.11
         version: 5.4.21
-
-  apps/worker:
-    dependencies:
-      '@mae/core':
-        specifier: workspace:*
-        version: link:../../packages/core
-      '@mae/providers':
-        specifier: workspace:*
-        version: link:../../packages/providers
-      hono:
-        specifier: ^4.6.11
-        version: 4.12.27
-    devDependencies:
-      '@cloudflare/workers-types':
-        specifier: ^4.20241127.0
-        version: 4.20260702.1
-      typescript:
-        specifier: ^5.6.3
-        version: 5.9.3
       wrangler:
         specifier: ^3.90.0
         version: 3.114.17(@cloudflare/workers-types@4.20260702.1)

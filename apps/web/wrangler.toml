@@ -1,0 +1,14 @@
+# Used for local `wrangler pages dev` only. The deployed Cloudflare Pages
+# project is configured via the dashboard (or its own project settings) and
+# does not read this file as part of its Git-connected build/deploy - Pages
+# builds and deploys Functions itself, without invoking wrangler in CI.
+name = "memecoin-analysis-engine"
+pages_build_output_dir = "dist"
+compatibility_date = "2024-11-01"
+compatibility_flags = ["nodejs_compat"]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "memecoin-analysis-engine"
+database_id = "fc765c01-274a-483d-8b14-0ca802295690"
+migrations_dir = "migrations"
