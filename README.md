@@ -18,33 +18,38 @@ Requires Node 20+ and pnpm.
 ```bash
 pnpm install
 
-# One-time: create your own D1 database and wire its id into wrangler.toml
-cd apps/worker
+# One-time: create your own D1 database and wire its id into apps/web/wrangler.toml
+cd apps/web
 npx wrangler d1 create memecoin-analysis-engine
-# paste the returned database_id into apps/worker/wrangler.toml
+# paste the returned database_id into apps/web/wrangler.toml
 
 # Apply the schema locally
 pnpm db:migrate:local
 
 cd ../..
-pnpm --filter @mae/web run build   # build the dashboard once so the worker can serve it
-pnpm dev:worker                     # runs the API + dashboard on http://localhost:8787
+pnpm --filter @mae/web run build   # build the dashboard once so Pages Functions have assets to serve
+pnpm dev:pages                      # runs the API (Pages Functions) + dashboard on http://localhost:8788
 ```
 
-For frontend-only iteration with hot reload (proxies `/api` to the worker):
+For frontend-only iteration with hot reload (proxies `/api` to the Pages dev server):
 
 ```bash
-pnpm dev:worker   # terminal 1 - API on :8787
-pnpm dev:web      # terminal 2 - Vite dev server on :5173
+pnpm dev:pages   # terminal 1 - Pages Functions + assets on :8788
+pnpm dev:web     # terminal 2 - Vite dev server on :5173
 ```
 
 ### Deploying to Cloudflare
 
+This project deploys as a **Cloudflare Pages** project connected to this Git
+repository - Cloudflare builds and deploys on every push, no local `wrangler
+deploy` needed. See `docs/ARCHITECTURE.md` for why Pages (not a Git-connected
+Worker) is the deployment target, and the exact dashboard configuration
+(root directory, build command, D1 binding).
+
+To apply the schema to the remote database once (or after a migration change):
+
 ```bash
-npx wrangler d1 create memecoin-analysis-engine   # once, if not already done
-npx wrangler d1 migrations apply memecoin-analysis-engine --remote
-pnpm --filter @mae/web run build
-cd apps/worker && npx wrangler deploy
+cd apps/web && npx wrangler d1 migrations apply memecoin-analysis-engine --remote
 ```
 
 ## Project structure
@@ -56,9 +61,9 @@ packages/
   providers/   data connectors (DexScreener, RugCheck) that normalize third-party
                 payloads into core's input types. The only place that names an API.
 apps/
-  worker/      Cloudflare Worker (Hono + D1): orchestrates providers -> core pipeline,
-                persists analyses, exposes the HTTP API, and serves the built dashboard
-  web/         React + Vite dashboard
+  web/         React + Vite dashboard, deployed as a Cloudflare Pages project
+    functions/ Pages Functions (Hono + D1): the HTTP API, under functions/api/[[route]].ts
+                everything outside functions/ is served as a static asset by Pages directly
 ```
 
 ## API

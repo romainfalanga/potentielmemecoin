@@ -14,8 +14,8 @@ augments the deterministic core rather than replacing it.
 ## Layers
 
 ```
-providers/   ->   core/engines   ->   core/scoring   ->   core/prediction   ->   core/report   ->   apps/worker (API)   ->   apps/web (dashboard)
-(fetch + normalize)  (rule engines)     (aggregation)      (horizon scenarios)     (report JSON)        (HTTP + D1)              (React)
+providers/   ->   core/engines   ->   core/scoring   ->   core/prediction   ->   core/report   ->   apps/web/functions (API)   ->   apps/web/src (dashboard)
+(fetch + normalize)  (rule engines)     (aggregation)      (horizon scenarios)     (report JSON)        (Pages Functions + D1)              (React)
 ```
 
 Each arrow is a one-way dependency. `packages/core` has **zero** runtime
@@ -129,14 +129,36 @@ block (rules evaluated/triggered, data freshness, data completeness,
 disclaimers). `pipeline.ts` (`runAnalysis`) is the single pure-function
 entry point tying engines -> scoring -> prediction -> report together.
 
-### 6. `apps/worker` - API + persistence
+### 6. `apps/web/functions` - API + persistence (Cloudflare Pages Functions)
 
-A Cloudflare Worker (Hono) that:
-- validates the address, calls `resolveAnalysisRawInput` then `runAnalysis`,
-- persists the result to D1 (`tokens` + `analyses` tables - see
-  `apps/worker/migrations/0001_init.sql`),
-- serves the built dashboard as static assets from the same Worker
-  (`[assets]` binding in `wrangler.toml`), so there is one deployable unit.
+A Hono app mounted as a Pages Functions catch-all:
+- `functions/api/[[route]].ts` is the only routed file (file-based routing -
+  it handles every request under `/api/*`); it just does
+  `export const onRequest = handle(app)` using Hono's `hono/cloudflare-pages`
+  adapter.
+- `functions/_shared/` holds the actual app: routes, the D1 repository layer,
+  address validation. The leading underscore tells Cloudflare Pages to treat
+  it as importable code, not a route.
+- The app validates the address, calls `resolveAnalysisRawInput` then
+  `runAnalysis`, and persists the result to D1 (`tokens` + `analyses` tables
+  - see `apps/web/migrations/0001_init.sql`).
+- Everything outside `functions/` (the built dashboard) is served by Pages'
+  native static asset handling - no fallback/proxy code needed, unlike a
+  Worker-with-assets setup.
+
+**Why Pages and not a Git-connected Worker:** an earlier version of this
+project deployed as a single Cloudflare Worker (Workers Builds, Git-connected,
+serving static assets via a `[assets]` binding). That pipeline repeatedly
+stalled in Cloudflare's build sandbox on `pnpm install`'s native postinstall
+steps for `wrangler`'s own heavy transitive dependencies (`workerd`, the
+~100MB local runtime binary; `sharp`, an image library) - because that
+pipeline's deploy step is literally invoking `wrangler deploy` inside the CI
+build. Cloudflare Pages' deploy model is structurally different: **Cloudflare
+builds and uploads Functions and static assets itself**, as a platform
+service, after your build command finishes - `wrangler` (or workerd/sharp)
+never needs to run inside the CI sandbox at all. `wrangler` is still a
+devDependency of `apps/web` for local development (`pages:dev`), but that
+never executes in Cloudflare's own build pipeline.
 
 The `analyses` table denormalizes each sub-score into its own column
 alongside the full `report_json`. That's specifically so future
@@ -145,7 +167,18 @@ deserialize JSON per row - the schema was designed for the "historize,
 compare, recalibrate" roadmap from day one, even though V1 doesn't build
 that pipeline yet.
 
-### 7. `apps/web` - dashboard
+**Cloudflare Pages dashboard configuration** (Git-connected project):
+- Root directory: `apps/web`
+- Build command: `pnpm run build` (runs `vite build`; `packages/core` and
+  `packages/providers` are consumed directly from TS source via the
+  workspace symlink, no separate build step needed for them)
+- Build output directory: `dist`
+- Functions: auto-detected from `apps/web/functions`
+- D1 binding: add `DB` -> `memecoin-analysis-engine` under
+  Settings -> Functions -> D1 database bindings (or via `wrangler.toml` if
+  the Pages project supports Wrangler-config-based bindings)
+
+### 7. `apps/web/src` - dashboard
 
 React + Vite, no UI framework dependency. Renders the verdict banner, the
 six score cards (each showing its meter, summary, and top triggered rules),

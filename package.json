@@ -8,7 +8,7 @@
     "test": "pnpm -r --filter=./packages/* run test",
     "typecheck": "pnpm -r run typecheck",
     "dev:web": "pnpm --filter @mae/web run dev",
-    "dev:worker": "pnpm --filter @mae/worker run dev"
+    "dev:pages": "pnpm --filter @mae/web run pages:dev"
   },
   "devDependencies": {
     "typescript": "^5.6.3"

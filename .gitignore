@@ -9,5 +9,4 @@ dist/
 coverage/
 .turbo/
 apps/web/dist/
-apps/worker/dist/
 *.tsbuildinfo

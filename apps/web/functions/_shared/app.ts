@@ -4,7 +4,13 @@ import type { Env } from "./env.js";
 import { analyzeRoute } from "./routes/analyze.js";
 import { analysesRoute, tokensRoute } from "./routes/analyses.js";
 
-const app = new Hono<{ Bindings: Env }>();
+/**
+ * Shared Hono app mounted by the Pages Function catch-all in
+ * `functions/api/[[route]].ts`. Kept in `_shared/` (a leading underscore
+ * folder) so Cloudflare Pages' file-based function router ignores it - it's
+ * imported code, not a routed endpoint.
+ */
+export const app = new Hono<{ Bindings: Env }>();
 
 app.use("/api/*", cors());
 
@@ -18,9 +24,4 @@ app.onError((err, c) => {
   return c.json({ error: "Internal server error." }, 500);
 });
 
-app.notFound((c) => {
-  if (c.req.path.startsWith("/api/")) return c.json({ error: "Not found." }, 404);
-  return c.env.ASSETS.fetch(c.req.raw);
-});
-
-export default app;
+app.notFound((c) => c.json({ error: "Not found." }, 404));
